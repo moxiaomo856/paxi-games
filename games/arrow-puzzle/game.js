@@ -177,6 +177,7 @@ function _buildChain(grid, size, ex, ey, exitDir) {
   const inChain = new Set([ex + ',' + ey]);
   const desiredLen = 3 + Math.floor(Math.random() * 5); // 3~7
   let prevX = ex, prevY = ey;
+  const OPPOSITE = { up: 'down', down: 'up', left: 'right', right: 'left' };
 
   for (let step = 1; step < desiredLen; step++) {
     // 找前一个箭头的所有相邻空格
@@ -187,8 +188,8 @@ function _buildChain(grid, size, ex, ey, exitDir) {
       if (nx < 0 || nx >= size || ny < 0 || ny >= size) continue;
       if (inChain.has(nx + ',' + ny)) continue;
       if (grid[ny][nx]) continue;
-      // 新箭头在 (nx, ny)，方向 = dir（指向前一个箭头 (prevX, prevY)）
-      candidates.push({ x: nx, y: ny, dir });
+      // 新箭头在 (nx, ny)，方向 = OPPOSITE[dir]（从前一个箭头走向 (nx,ny) 的反方向 = 从 (nx,ny) 指回前一个箭头）
+      candidates.push({ x: nx, y: ny, dir: OPPOSITE[dir] });
     }
     if (candidates.length === 0) break;
 
@@ -274,7 +275,7 @@ function _arrowRenderBoard() {
         cellEl.addEventListener('click', (e) => { e.preventDefault(); _arrowTap(x, y, cellEl); });
         cellEl.addEventListener('mouseenter', () => _arrowHighlight(x, y));
         cellEl.addEventListener('mouseleave', _clearHighlight);
-        cellEl.addEventListener('touchstart', (e) => { e.preventDefault(); _arrowHighlight(x, y); }, { passive: false });
+        cellEl.addEventListener('touchstart', () => _arrowHighlight(x, y), { passive: true });
       } else {
         cellEl.className = 'arrow-cell empty';
         cellEl.style.width = cell + 'px';

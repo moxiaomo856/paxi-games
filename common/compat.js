@@ -56,6 +56,31 @@
   }
 
   // ============================================================
+  // protobuf 基础解码函数
+  // ============================================================
+
+  /** 解码 varint，返回 { value: BigInt, nextOffset } */
+  function decodeVarint(bytes, offset) {
+    let result = 0n;
+    let shift = 0n;
+    while (offset < bytes.length) {
+      const byte = bytes[offset];
+      result |= BigInt(byte & 0x7f) << shift;
+      offset++;
+      if ((byte & 0x80) === 0) break;
+      shift += 7n;
+    }
+    return { value: result, nextOffset: offset };
+  }
+
+  /** 解码 length-delimited 字段，返回 { data: Uint8Array, nextOffset } */
+  function decodeLenDelim(bytes, offset) {
+    const { value: len, nextOffset } = decodeVarint(bytes, offset);
+    const data = bytes.subarray(nextOffset, nextOffset + Number(len));
+    return { data, nextOffset: nextOffset + Number(len) };
+  }
+
+  // ============================================================
   // Coin 编码
   // ============================================================
   function encodeCoin(denom, amount) {
@@ -91,6 +116,46 @@
         }
       }
       return { finish: () => concatBytes(...parts) };
+    },
+    /** 解码 MsgSend protobuf 字节 → { fromAddress, toAddress, amount: [{denom, amount}] } */
+    decode(bytes) {
+      let offset = 0;
+      let fromAddress = '';
+      let toAddress = '';
+      const amount = [];
+      while (offset < bytes.length) {
+        const { value: tag, nextOffset: tagEnd } = decodeVarint(bytes, offset);
+        offset = tagEnd;
+        const fieldNum = Number(tag >> 3n);
+        const wireType = Number(tag & 0x7n);
+        if (wireType === 2) {
+          const { data, nextOffset: dataEnd } = decodeLenDelim(bytes, offset);
+          offset = dataEnd;
+          if (fieldNum === 1) fromAddress = new TextDecoder().decode(data);
+          else if (fieldNum === 2) toAddress = new TextDecoder().decode(data);
+          else if (fieldNum === 3) {
+            // 解码 Coin: { string denom = 1; string amount = 2; }
+            let co = 0;
+            let denom = '', amt = '';
+            while (co < data.length) {
+              const { value: ct, nextOffset: ctEnd } = decodeVarint(data, co);
+              co = ctEnd;
+              const cf = Number(ct >> 3n);
+              const { data: cd, nextOffset: cdEnd } = decodeLenDelim(data, co);
+              co = cdEnd;
+              if (cf === 1) denom = new TextDecoder().decode(cd);
+              else if (cf === 2) amt = new TextDecoder().decode(cd);
+            }
+            amount.push({ denom, amount: amt });
+          }
+        } else if (wireType === 0) {
+          const { nextOffset: vEnd } = decodeVarint(bytes, offset);
+          offset = vEnd;
+        } else {
+          break; // 未知 wire type，停止
+        }
+      }
+      return { fromAddress, toAddress, amount };
     },
   };
 
@@ -158,11 +223,12 @@
   };
 
   // ============================================================
-  // Any 编码（用于 Grant 内嵌套的 authorization 字段）
-  // protobuf: google.protobuf.Any
-  // { string type_url = 1; bytes value = 2; }
+  // Any 编码（google.protobuf.Any）
+  // protobuf: { string type_url = 1; bytes value = 2; }
+  // 用于 TxBody.messages 中包装每条消息，以及 Grant/MsgExec 等嵌套场景。
   // ============================================================
-  const AnyEncode = {
+  const Any = {
+    fromPartial(data) { return data; },
     encode(data) {
       return {
         finish: () => concatBytes(
@@ -172,6 +238,9 @@
       };
     },
   };
+
+  // AnyEncode — 内部别名，供 Grant/MsgExec/MsgSubmitProposal 嵌套编码复用
+  const AnyEncode = Any;
 
   // ============================================================
   // GenericAuthorization 编码
@@ -431,6 +500,7 @@
     }
 
     const supplement = {
+      Any,
       MsgSend,
       MsgExecuteContract,
       MsgInstantiateContract,
@@ -463,6 +533,24 @@
       console.log('[Compat] 已补充缺失的类:', added.join(', '));
     } else {
       console.log('[Compat] PaxiCosmJS SDK 完整，无需补充');
+    }
+
+    // ---- 方法补丁：SDK 可能提供了类但缺少关键方法 ----
+    // Any: 确保有 fromPartial（paxi-sdk.js / faucet.js / prc-burn.js 都依赖）
+    if (window.PaxiCosmJS.Any) {
+      if (typeof window.PaxiCosmJS.Any.fromPartial !== 'function') {
+        window.PaxiCosmJS.Any.fromPartial = Any.fromPartial;
+        console.log('[Compat] 已补丁 Any.fromPartial');
+      }
+      if (typeof window.PaxiCosmJS.Any.encode !== 'function') {
+        window.PaxiCosmJS.Any.encode = Any.encode;
+        console.log('[Compat] 已补丁 Any.encode');
+      }
+    }
+    // MsgSend: 确保有 decode（faucet.js scanApplications 依赖）
+    if (window.PaxiCosmJS.MsgSend && typeof window.PaxiCosmJS.MsgSend.decode !== 'function') {
+      window.PaxiCosmJS.MsgSend.decode = MsgSend.decode;
+      console.log('[Compat] 已补丁 MsgSend.decode');
     }
   }
 

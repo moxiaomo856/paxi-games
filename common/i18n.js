@@ -115,6 +115,7 @@ window.PAXI_I18N = {
     'admin.prcContract': 'PRC20 合约地址', 'admin.prcSymbol': '代币符号（如 GAME）',
     'admin.prcDecimals': '代币精度', 'admin.prcEntry': '入场代币数量',
     'admin.prcR1': '复活1次代币数量', 'admin.prcR2': '复活2次代币数量',
+    'admin.prcAirdrop': '空投代币数量（每地址）', 'admin.prcFaucet': '空投发送钱包（留空=管理员地址）',
     'admin.entry': '入场费（PAXI）', 'admin.free': '免费复活次数（累计）',
     'admin.single': '单次复活价格（PAXI）', 'admin.double': '优惠复活价格（PAXI）',
     'admin.dblN': '优惠复活获得次数', 'admin.adminAddr': '管理员地址',
@@ -126,6 +127,7 @@ window.PAXI_I18N = {
     'misc.txFailed': '交易失败',
     // ---- PRC20 burn ----
     'burn.title': '销毁 PRC20 代币',
+    'burn.cardDesc': '销毁链上 PRC20 代币，每笔 2 PAXI 手续费',
     'burn.feeLabel': '销毁手续费（每笔）',
     'burn.contract': 'PRC20 合约地址',
     'burn.contractPh': '粘贴合约地址（wasm...）',
@@ -244,6 +246,7 @@ window.PAXI_I18N = {
     'admin.prcContract': 'PRC20 contract address', 'admin.prcSymbol': 'Token symbol (e.g. GAME)',
     'admin.prcDecimals': 'Token decimals', 'admin.prcEntry': 'Entry token amount',
     'admin.prcR1': 'Revive x1 token amount', 'admin.prcR2': 'Revive x2 token amount',
+    'admin.prcAirdrop': 'Airdrop amount (per address)', 'admin.prcFaucet': 'Faucet wallet (empty=admin)',
     'admin.entry': 'Entry fee (PAXI)', 'admin.free': 'Free revives (lifetime)',
     'admin.single': 'Single revive price (PAXI)', 'admin.double': 'Deal revive price (PAXI)',
     'admin.dblN': 'Revives in deal', 'admin.adminAddr': 'Admin address',
@@ -254,6 +257,7 @@ window.PAXI_I18N = {
     'misc.txFailed': 'Transaction failed',
     // ---- PRC20 burn ----
     'burn.title': 'Burn PRC20 Tokens',
+    'burn.cardDesc': 'Burn on-chain PRC20 tokens, 2 PAXI fee per burn',
     'burn.feeLabel': 'Service fee (per burn)',
     'burn.contract': 'PRC20 Contract Address',
     'burn.contractPh': 'Paste contract address (wasm...)',

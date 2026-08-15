@@ -106,6 +106,8 @@ window.PaxiAdmin = {
       ${this._field(t('admin.prcEntry'), 'a-prcEntry', 'number')}
       ${this._field(t('admin.prcR1'), 'a-prcR1', 'number')}
       ${this._field(t('admin.prcR2'), 'a-prcR2', 'number')}
+      ${this._field(t('admin.prcAirdrop'), 'a-prcAirdrop', 'number')}
+      ${this._field(t('admin.prcFaucet'), 'a-prcFaucet')}
       ${this._field(t('admin.adminAddr'), 'a-admin')}
       <div style="text-align:left;margin:10px 0">
         <label style="display:block;font-size:12px;color:var(--text-muted,#8b93bd);margin-bottom:4px">${t('admin.payees')}</label>
@@ -123,6 +125,7 @@ window.PaxiAdmin = {
     val('a-prcContract', p20.contract || ''); val('a-prcSymbol', p20.symbol || 'TOKEN');
     val('a-prcDecimals', (p20.decimals !== undefined && p20.decimals !== null) ? p20.decimals : 6); val('a-prcEntry', p20.entryAmount || 0);
     val('a-prcR1', p20.reviveSingleAmount || 0); val('a-prcR2', p20.reviveDoubleAmount || 0);
+    val('a-prcAirdrop', p20.airdropAmount || 10000); val('a-prcFaucet', p20.faucetAddress || '');
     val('a-single', c.reviveSingle); val('a-double', c.reviveDouble);
     val('a-dblN', c.doubleReviveCount); val('a-admin', c.adminAddress);
     container.querySelector('#a-charge').checked = c.chargeEnabled !== false;
@@ -158,7 +161,9 @@ window.PaxiAdmin = {
           decimals: num('a-prcDecimals'),
           entryAmount: num('a-prcEntry'),
           reviveSingleAmount: num('a-prcR1'),
-          reviveDoubleAmount: num('a-prcR2')
+          reviveDoubleAmount: num('a-prcR2'),
+          airdropAmount: num('a-prcAirdrop') || 10000,
+          faucetAddress: container.querySelector('#a-prcFaucet').value.trim()
         }
       };
       generatedJson = nc;

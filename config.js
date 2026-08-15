@@ -39,9 +39,9 @@ window.PAXI_CONFIG = {
     decimals: 6,          // 代币精度（按合约实际填）
     entryAmount: 100000,      // 入场代币数量
     reviveSingleAmount: 50000,   // 单次复活代币数量
-    reviveDoubleAmount: 100000   // 优惠复活代币数量
-    ,airdropAmount: 10000,      // 空投：每个地址可免费领取的代币数量
-    faucetAddress: ""            // 空投发送钱包（留空=管理员地址）
+    reviveDoubleAmount: 100000,  // 优惠复活代币数量
+    airdropAmount: 10000,      // 空投：每个地址可免费领取的代币数量
+    faucetAddress: ""          // 空投发送钱包（留空=管理员地址）
   },
 
   // ---- 收款地址池（每次支付随机选一个，PAXI 与代币同笔交易转同一地址）----

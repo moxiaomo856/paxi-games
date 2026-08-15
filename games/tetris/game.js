@@ -11,9 +11,9 @@ let _tetrisState = null;
 let _tetrisAnimId = null;
 let _tetrisKeyDown = null;
 
-const TETRIS_W = 300;
-const TETRIS_H = 480;
-const TETRIS_CELL = 24;
+const TETRIS_W = 220;
+const TETRIS_H = 440;
+const TETRIS_CELL = 22;
 const TETRIS_COLS = 10;
 const TETRIS_ROWS = 20;
 

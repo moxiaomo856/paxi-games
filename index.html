@@ -81,12 +81,7 @@
   </div>
 
   <div class="main">
-    <div class="hero">
-      <h1 id="heroTitle"></h1>
-      <p id="heroRules"></p>
-    </div>
     <div class="grid" id="gameGrid"></div>
-    <div id="burnWrap"></div>
     <div class="foot" id="foot"></div>
   </div>
 
@@ -95,7 +90,8 @@
   <script src="common/i18n.js"></script>
   <script>
     const GAMES = [
-      // ---- 第一梯队：链游主题（对标 CryptoMafia / CROAK Quest / BlockchainX / Shards / decentralized-game-template）
+      // ---- 第一梯队：链游主题
+      { id: 'plane-war', icon: '✈️', deaths: true },
       { id: 'arrow-puzzle', icon: '➡️', deaths: false },
       { id: 'card-mafia', icon: '🃏', deaths: true },
       { id: 'croak-quest', icon: '🐸', deaths: true },
@@ -104,10 +100,10 @@
       { id: 'dungeon-runner', icon: '🏃', deaths: true },
       // ---- 第二梯队：经典街机
       { id: 'tetris', icon: '🟦', deaths: true },
-      { id: 'plane-war', icon: '✈️', deaths: true },
       { id: 'bubble-shooter', icon: '🫧', deaths: true },
       { id: '2048', icon: '🔢', deaths: true },
-      { id: 'klotski', icon: '🧩', deaths: false },
+      // ---- 工具：Burn PRC20
+      { id: 'burn-prc20', icon: '🔥', deaths: false, isBurn: true },
     ];
 
     function showToast(msg, type = '') {
@@ -125,7 +121,6 @@
       // 语言按钮
       document.getElementById('btnLang').textContent = window.PAXI_LANG === 'zh' ? 'EN' : '中';
       document.getElementById('btnWallet').textContent = t('shell.connect');
-      // hero
       // 双币费用显示（prc20 未启用时只显示 PAXI）
       const p20 = c.prc20, prcOn = p20 && p20.enabled && p20.contract;
       const cost = (paxi, tok) => {
@@ -133,32 +128,35 @@
         if (tok > 0 && prcOn) s += ' + ' + tok.toLocaleString() + ' ' + p20.symbol;
         return s;
       };
-      document.getElementById('heroTitle').textContent = t('lobby.heroTitle');
-      document.getElementById('heroRules').innerHTML =
-        t('lobby.heroAll', {
-          e: '<b>' + cost(c.entryFee, prcOn ? p20.entryAmount : 0) + '</b>',
-          r: c.entryRounds,
-          f: '<b>' + c.freeRevives + '</b>',
-          s: '<b>' + cost(c.reviveSingle, prcOn ? p20.reviveSingleAmount : 0) + '</b>',
-          d: '<b>' + cost(c.reviveDouble, prcOn ? p20.reviveDoubleAmount : 0) + '</b>'
-        });
       // 游戏卡片
-      document.getElementById('gameGrid').innerHTML = GAMES.map(g => `
+      document.getElementById('gameGrid').innerHTML = GAMES.map(g => {
+        if (g.isBurn) {
+          return `<a class="game-card" href="#" id="burnCardEntry" style="border-color:rgba(239,68,68,.3)">
+            <div class="game-icon">${g.icon}</div>
+            <div class="game-name">${t('burn.title')}</div>
+            <div class="game-desc">${t('burn.cardDesc')}</div>
+            <div class="game-price">🔥 ${t('burn.feeLabel')}：2 PAXI</div>
+          </a>`;
+        }
+        return `
         <a class="game-card" href="games/${g.id}/">
           <div class="game-icon">${g.icon}</div>
           <div class="game-name">${t('game.' + g.id)}</div>
           <div class="game-desc">${t('game.' + g.id + '.d')}${g.deaths ? '' : '<br><span style="font-size:10px">' + t('lobby.noDeath') + '</span>'}</div>
           <div class="game-price">💳 ${c.chargeEnabled ? cost(c.entryFee, prcOn ? p20.entryAmount : 0) + ' / ' + c.entryRounds + t('lobby.rounds') : t('lobby.free')}</div>
-        </a>
-      `).join('');
-      document.getElementById('foot').textContent = t('lobby.foot');
+        </a>`;
+      }).join('');
 
-      if (!c.chargeEnabled) {
-        const d = document.createElement('div');
-        d.className = 'debug-banner';
-        d.textContent = t('pay.debugBanner');
-        document.body.appendChild(d);
+      // Burn 卡片点击 → 打开 Burn 面板（不跳转）
+      var burnEntry = document.getElementById('burnCardEntry');
+      if (burnEntry) {
+        burnEntry.onclick = function(e) {
+          e.preventDefault();
+          _openBurnPanel();
+        };
       }
+
+      document.getElementById('foot').textContent = t('lobby.foot');
 
       document.getElementById('btnLang').onclick = () => setLang(window.PAXI_LANG === 'zh' ? 'en' : 'zh');
     })();
@@ -173,30 +171,45 @@
   <script src="common/faucet.js" defer></script>
   <script src="common/prc-burn.js" defer></script>
   <script>
-    // Burn 面板初始化：只需要 PRCBurn 就绪即可渲染
-    (function _pollBurn() {
-      var tries = 0;
-      function tick() {
-        tries++;
-        var wrap = document.getElementById('burnWrap');
+    // Burn 面板：点卡片打开全屏 overlay
+    function _openBurnPanel() {
+      // 移除已有 overlay
+      var old = document.getElementById('burnOverlay');
+      if (old) { old.remove(); return; }
+
+      var overlay = document.createElement('div');
+      overlay.id = 'burnOverlay';
+      overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto';
+
+      var inner = document.createElement('div');
+      inner.style.cssText = 'max-width:480px;width:100%;margin:auto;';
+      overlay.appendChild(inner);
+
+      // 关闭按钮
+      var closeBtn = document.createElement('div');
+      closeBtn.textContent = '✕';
+      closeBtn.style.cssText = 'position:fixed;top:16px;right:20px;font-size:24px;color:#fff;cursor:pointer;z-index:100000';
+      closeBtn.onclick = function() { overlay.remove(); };
+      overlay.appendChild(closeBtn);
+
+      // 点击背景关闭
+      overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.remove(); });
+
+      document.body.appendChild(overlay);
+
+      // 等 PRCBurn 就绪后渲染
+      function tryRender() {
         var pb = window.PRCBurn;
-        if (pb && wrap) {
-          if (wrap.dataset.done !== '1') {
-            try {
-              wrap.innerHTML = pb.renderHTML();
-              pb.bind(wrap);
-              wrap.dataset.done = '1';
-              console.log('[Burn] Panel rendered OK');
-            } catch (e) {
-              console.error('[Burn] render/bind error:', e);
-            }
-          }
-          return;
+        if (pb) {
+          inner.innerHTML = pb.renderHTML();
+          pb.bind(inner);
+        } else {
+          inner.innerHTML = '<div style="text-align:center;color:#888;padding:40px">Loading...</div>';
+          setTimeout(tryRender, 100);
         }
-        if (tries < 300) setTimeout(tick, 50);
       }
-      tick();
-    })();
+      tryRender();
+    }
   </script>
   <script>
     // 全局 UI 更新函数：paxi-sdk.js 的 connectWallet/disconnectWallet 会调用它
