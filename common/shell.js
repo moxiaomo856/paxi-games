@@ -15,9 +15,11 @@ function showToast(msg, type = '') {
   setTimeout(() => toast.remove(), 4000);
 }
 
-function updateWalletUI() {
+// 显式挂到 window：与 paxi-sdk.js 的全局检测保持一致
+window.updateWalletUI = function () {
   const btn = document.getElementById('shellWalletBtn');
   const addr = document.getElementById('shellWalletAddr');
+  const bal = document.getElementById('shellWalletBalance');
   if (!btn) return;
   if (state.connected && state.wallet) {
     btn.textContent = t('shell.disconnect');
@@ -25,11 +27,20 @@ function updateWalletUI() {
       addr.textContent = state.wallet.address.slice(0, 10) + '...' + state.wallet.address.slice(-6);
       addr.style.display = 'inline';
     }
+    if (bal) {
+      if (state.balance !== null && state.balance !== undefined) {
+        bal.textContent = Number(state.balance).toFixed(1) + ' ' + PAXI_CFG().displayDenom;
+        bal.style.display = 'inline';
+      } else {
+        bal.style.display = 'none';
+      }
+    }
   } else {
     btn.textContent = t('shell.connect');
     if (addr) addr.style.display = 'none';
+    if (bal) bal.style.display = 'none';
   }
-}
+};
 
 const SHELL_CSS = `
 :root{
@@ -41,16 +52,20 @@ const SHELL_CSS = `
 html,body{overscroll-behavior:none}
 body{margin:0;background:radial-gradient(1200px 600px at 50% -100px,#1c2244,var(--bg));
   color:var(--text);font-family:system-ui,"Microsoft YaHei","Segoe UI",sans-serif;min-height:100vh}
-.shell-header{display:flex;align-items:center;justify-content:space-between;gap:6px;
+.shell-header{display:flex;flex-direction:column;gap:6px;
   padding:10px 12px;position:sticky;top:0;z-index:100;
   background:rgba(15,18,34,.9);backdrop-filter:blur(8px);border-bottom:1px solid var(--border)}
+.shell-header-row{display:flex;align-items:center;gap:6px}
+.shell-header-row:first-child{justify-content:space-between}
+.shell-header-row:last-child{justify-content:center}
 .shell-back{color:var(--text-muted);text-decoration:none;font-size:13px;padding:8px 10px;
   border:1px solid var(--border);border-radius:10px;white-space:nowrap}
 .shell-back:hover{color:var(--text)}
 .shell-title{font-weight:800;font-size:15px;flex:1;text-align:center;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .shell-right{display:flex;align-items:center;gap:6px}
-#shellWalletAddr{font-size:11px;color:var(--text-muted);font-family:monospace;display:none}
+#shellWalletAddr{font-size:11px;color:var(--text-muted);font-family:monospace;display:none;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#shellWalletBalance{font-size:11px;color:var(--success);font-family:monospace;display:none;margin-left:4px}
 .shell-header button{padding:8px 10px;border-radius:10px;border:1px solid var(--border);
   background:var(--bg2);color:var(--text);font-size:12px;cursor:pointer;min-height:36px}
 #shellLangBtn{font-weight:700;min-width:44px}
@@ -88,13 +103,16 @@ window.PaxiShell = {
 
     document.body.innerHTML = `
       <div class="shell-header">
-        <a class="shell-back" href="../../index.html">← ${t('shell.lobby')}</a>
-        <div class="shell-title">${gameTitle}</div>
-        <div class="shell-right">
+        <div class="shell-header-row">
+          <a class="shell-back" href="../../index.html">← ${t('shell.lobby')}</a>
+          <div class="shell-title">${gameTitle}</div>
+          <button id="shellWalletBtn">${t('shell.connect')}</button>
+        </div>
+        <div class="shell-header-row">
           <span id="shellWalletAddr"></span>
+          <span id="shellWalletBalance"></span>
           <button id="shellLangBtn">${window.PAXI_LANG === 'zh' ? 'EN' : '中'}</button>
           <button id="shellFaucetBtn" title="Faucet">🎁</button>
-          <button id="shellWalletBtn">${t('shell.connect')}</button>
         </div>
       </div>
       <div class="shell-main" id="gameRoot"></div>
@@ -110,6 +128,9 @@ window.PaxiShell = {
       if (state.connected) disconnectWallet();
       else { await connectWallet(); refreshBalance(); }
     };
+
+    // 立即同步一次钱包 UI（如果之前已连接）
+    if (typeof updateWalletUI === 'function') updateWalletUI();
 
     const reg = window.TOOL_REGISTRY && window.TOOL_REGISTRY[gameId];
     if (!reg) { console.error('Game not registered:', gameId); return; }

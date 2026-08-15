@@ -34,12 +34,32 @@ window.PaxiAdmin = {
       const btn = m.querySelector('#admVerify');
       btn.disabled = true; btn.textContent = t('admin.verifying');
       try {
-        if (typeof window.paxihub === 'undefined') throw new Error(t('shell.installWallet'));
-        const sender = await window.paxihub.paxi.getAddress();
-        if (sender.address !== c.adminAddress) throw new Error(t('admin.notAdmin'));
-        showToast(t('admin.verified', { a: short(sender.address) }), 'success');
+        // 优先复用已连接的钱包状态（大厅/游戏页 connectWallet 后 state 已写好）
+        // 避免再次调用 paxihub.getAddress() 导致用户二次弹窗授权
+        let walletAddr = null;
+        if (state && state.connected && state.wallet && state.wallet.address) {
+          walletAddr = state.wallet.address;
+        } else {
+          // 未连接：走标准 connectWallet 流程（会提示安装钱包、处理移动端跳转、统一错误提示）
+          const ok = typeof connectWallet === 'function' ? await connectWallet() : false;
+          if (!ok) throw new Error(t('pay.needWallet'));
+          if (state && state.wallet && state.wallet.address) {
+            walletAddr = state.wallet.address;
+          } else if (typeof window.paxihub !== 'undefined') {
+            // 兜底：直接从钱包拿一次地址
+            const sender = await window.paxihub.paxi.getAddress();
+            walletAddr = sender && sender.address;
+          }
+        }
+        if (!walletAddr) throw new Error(t('pay.needWallet'));
+        if (walletAddr !== c.adminAddress) {
+          // 地址不匹配时，把当前地址显示给管理员，方便排查（调试用）
+          const msg = t('admin.notAdmin') + '（当前：' + short(walletAddr) + '）';
+          throw new Error(msg);
+        }
+        showToast(t('admin.verified', { a: short(walletAddr) }), 'success');
         btn.remove();
-        m.querySelector('#admStatus').innerHTML = t('admin.verified', { a: '<b>' + short(sender.address) + '</b>' });
+        m.querySelector('#admStatus').innerHTML = t('admin.verified', { a: '<b>' + short(walletAddr) + '</b>' });
         this._buildForm(m.querySelector('#admForm'));
       } catch (e) {
         showToast(e.message || String(e), 'error');
@@ -58,6 +78,7 @@ window.PaxiAdmin = {
 
   _buildForm(container) {
     const c = window.PAXI_CONFIG;
+    container.style.display = 'block';
     container.innerHTML = `
       <div style="height:1px;background:#3d4680;margin:4px 0 12px"></div>
       <div style="text-align:left;font-size:14px;font-weight:700;margin-bottom:6px">${t('admin.rules')}</div>
