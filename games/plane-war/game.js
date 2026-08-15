@@ -17,22 +17,17 @@ let _planeWarMouseUp = null;
 function renderPlaneWar() {
   return `
     <div class="card">
-      <div class="card-title">✈️ ${t('planeWar.title')}</div>
-      <div style="text-align:center;margin-bottom:10px;">
-        <div style="font-size:13px;color:var(--text-muted);margin-bottom:8px;">${t('planeWar.hint')}</div>
-        <div style="display:flex;gap:8px;justify-content:center;margin-bottom:8px;flex-wrap:wrap;">
-          <span style="background:var(--bg);padding:4px 10px;border-radius:6px;font-size:12px;">${t('planeWar.score')}: <b id="pwScore" style="color:var(--primary)">0</b></span>
-          <span style="background:var(--bg);padding:4px 10px;border-radius:6px;font-size:12px;">${t('planeWar.hp')}: <b id="pwHp" style="color:var(--success)">❤❤❤</b></span>
-          ${GamePay.roundsBadge('plane-war')}
-        </div>
+      <div style="display:flex;gap:8px;justify-content:center;margin:4px 0 10px;flex-wrap:wrap;">
+        <span style="background:var(--bg);padding:4px 10px;border-radius:6px;font-size:12px;">${t('planeWar.score')}: <b id="pwScore" style="color:var(--primary)">0</b></span>
+        <span style="background:var(--bg);padding:4px 10px;border-radius:6px;font-size:12px;">${t('planeWar.hp')}: <b id="pwHp" style="color:var(--success)">❤❤❤</b></span>
+        ${GamePay.roundsBadge('plane-war')}
       </div>
       <div style="position:relative;display:flex;justify-content:center;">
         <canvas id="planeWarCanvas" width="360" height="500" style="background:linear-gradient(180deg,#0a0a1a 0%,#1a1a3a 50%,#0a0a1a 100%);border-radius:8px;touch-action:none;max-width:100%;height:auto;"></canvas>
         <div id="gpOverlay" style="position:absolute;top:0;left:0;right:0;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,0.7);border-radius:8px;z-index:10;">
-          ${GamePay.overlayHTML('plane-war', 'planeWar.title', 'planeWar.hint')}
+          ${GamePay.overlayHTML('plane-war', 'planeWar.title', 'planeWar.controls')}
         </div>
       </div>
-      <div style="text-align:center;margin-top:12px;font-size:11px;color:var(--text-muted);">${t('planeWar.controls')}</div>
     </div>
   `;
 }

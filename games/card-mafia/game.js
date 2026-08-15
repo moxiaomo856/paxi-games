@@ -12,9 +12,7 @@ const MAFIA_CARD_TYPES = ['attack', 'attack', 'attack', 'defend', 'heal', 'gold'
 function renderMafia() {
   return `
     <div class="card">
-      <div class="card-title">🃏 ${t('game.card-mafia')}</div>
-      <div style="text-align:center;font-size:12px;color:var(--text-muted);margin-bottom:10px;">${t('mafia.desc')}</div>
-      <div style="display:flex;justify-content:space-between;gap:8px;margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;gap:8px;margin:4px 0 12px;">
         <div style="flex:1;background:var(--bg);border-radius:10px;padding:10px;text-align:center;">
           <div style="font-size:12px;color:var(--text-muted)">${t('mafia.you')}</div>
           <div style="font-size:18px;font-weight:800;color:var(--success)">❤ <span id="mafiaYouHp">20</span></div>
@@ -29,10 +27,9 @@ function renderMafia() {
       <div style="position:relative;">
         <div id="mafiaHand" style="display:flex;gap:8px;justify-content:center;min-height:150px;"></div>
         <div id="gpOverlay" style="position:absolute;top:0;left:0;right:0;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,0.75);border-radius:8px;z-index:10;">
-          ${GamePay.overlayHTML('card-mafia', 'game.card-mafia', 'mafia.desc')}
+          ${GamePay.overlayHTML('card-mafia', 'game.card-mafia', 'mafia.controls')}
         </div>
       </div>
-      <div style="text-align:center;margin-top:12px;font-size:11px;color:var(--text-muted);">${t('mafia.controls')}</div>
     </div>
     <style>
       .mafia-card{width:74px;border-radius:12px;padding:10px 6px;text-align:center;cursor:pointer;

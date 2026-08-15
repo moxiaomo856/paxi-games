@@ -4,23 +4,48 @@
 // 生成新的 config.js，替换仓库根目录同名文件并提交即生效。
 // ============================================================
 window.PAXI_CONFIG = {
-  "chainId": "paxi-mainnet",
-  "chainName": "Paxi Chain",
-  "rpcEndpoint": "https://mainnet-rpc.paxinet.io",
-  "restEndpoint": "https://mainnet-lcd.paxinet.io",
-  "denom": "upaxi",
-  "displayDenom": "PAXI",
-  "decimals": 6,
-  "sdkUrl": "https://mainnet-api.paxinet.io/resources/js/paxi-cosmjs.umd.js",
-  "adminAddress": "paxi1rdarmm997hqwfdgl9wvnpffe28zmex3kfyg7xd",
-  "chargeEnabled": false,
-  "entryFee": 5,
-  "entryRounds": 2,
-  "freeRevives": 2,
-  "reviveSingle": 3,
-  "reviveDouble": 5,
-  "doubleReviveCount": 2,
-  "payeeAddresses": [
+  // ---- 区块链网络（Paxi 主网）----
+  chainId: "paxi-mainnet",
+  chainName: "Paxi Chain",
+  rpcEndpoint: "https://mainnet-rpc.paxinet.io",
+  restEndpoint: "https://mainnet-lcd.paxinet.io",   // LCD
+  denom: "upaxi",              // 链上最小单位
+  displayDenom: "PAXI",        // 显示名称
+  decimals: 6,                 // 1 PAXI = 1000000 upaxi
+  sdkUrl: "https://mainnet-api.paxinet.io/resources/js/paxi-cosmjs.umd.js",
+
+  // ---- 管理员（连接此钱包可进入管理面板改规则）----
+  adminAddress: "paxi1rdarmm997hqwfdgl9wvnpffe28zmex3kfyg7xd",
+
+  // ---- 收费开关（false = 调试模式，全部免费）----
+  chargeEnabled: false,
+
+  // ---- 付费规则（收费启用时才生效；价格下调备用）----
+  entryFee: 2,            // 入场费（PAXI，原为5）
+  entryRounds: 5,         // 一次入场可玩局数（原为2，提高性价比）
+  freeRevives: 3,         // 每个玩家累计免费复活次数（原为2）
+  reviveSingle: 1,        // 单次复活（PAXI，原为3）
+  reviveDouble: 2,        // 优惠复活（PAXI，原为5）
+  doubleReviveCount: 2,   // 优惠复活获得次数
+
+  // ---- PRC20 代币（双币付费）----
+  // 代币发布后：把 enabled 改为 true 并填入 contract 合约地址即可启用。
+  // 启用后：入场 = 5 PAXI + 100,000 代币玩 2 局；
+  //         复活1次 = 3 PAXI + 50,000；复活2次 = 5 PAXI + 100,000。
+  prc20: {
+    enabled: false,       // ⬅ 代币发布后改为 true
+    contract: "",         // ⬅ PRC20 合约地址（发布后填入）
+    symbol: "TOKEN",      // 显示符号（改成你的代币名）
+    decimals: 6,          // 代币精度（按合约实际填）
+    entryAmount: 100000,      // 入场代币数量
+    reviveSingleAmount: 50000,   // 单次复活代币数量
+    reviveDoubleAmount: 100000   // 优惠复活代币数量
+    ,airdropAmount: 10000,      // 空投：每个地址可免费领取的代币数量
+    faucetAddress: ""            // 空投发送钱包（留空=管理员地址）
+  },
+
+  // ---- 收款地址池（每次支付随机选一个，PAXI 与代币同笔交易转同一地址）----
+  payeeAddresses: [
     "paxi1ngut7ymp4cmzu7drjrc2gv7rhtnq4p0u6cgl0g",
     "paxi1kg0fzzyldr5ldggd8hhvvmyhg9xx3j3uvkn8eg",
     "paxi1m62c5kqs0marmv54scz88nw4cx4k06yehd92fk",
@@ -32,14 +57,5 @@ window.PAXI_CONFIG = {
     "paxi16smk5dq5qwyqvhkchrrwxhg9e2w7cvxpsx9f49",
     "paxi194kpjqhyz7re2g749lc2030cgeg4sql5ldvyem",
     "paxi1ykgjrygltdctjlthmhvzv09h3yey0acefmyfnm"
-  ],
-  "prc20": {
-    "enabled": false,
-    "contract": "",
-    "symbol": "TOKEN",
-    "decimals": 6,
-    "entryAmount": 100000,
-    "reviveSingleAmount": 50000,
-    "reviveDoubleAmount": 100000
-  }
+  ]
 };

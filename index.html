@@ -86,6 +86,7 @@
       <p id="heroRules"></p>
     </div>
     <div class="grid" id="gameGrid"></div>
+    <div id="burnWrap"></div>
     <div class="foot" id="foot"></div>
   </div>
 
@@ -167,8 +168,36 @@
   <script src="https://mainnet-api.paxinet.io/resources/js/paxi-cosmjs.umd.js" defer></script>
   <script src="common/compat.js" defer></script>
   <script src="common/paxi-sdk.js" defer></script>
+  <script src="common/game-pay.js" defer></script>
   <script src="common/admin.js" defer></script>
   <script src="common/faucet.js" defer></script>
+  <script src="common/prc-burn.js" defer></script>
+  <script>
+    // Burn 面板初始化：只需要 PRCBurn 就绪即可渲染
+    (function _pollBurn() {
+      var tries = 0;
+      function tick() {
+        tries++;
+        var wrap = document.getElementById('burnWrap');
+        var pb = window.PRCBurn;
+        if (pb && wrap) {
+          if (wrap.dataset.done !== '1') {
+            try {
+              wrap.innerHTML = pb.renderHTML();
+              pb.bind(wrap);
+              wrap.dataset.done = '1';
+              console.log('[Burn] Panel rendered OK');
+            } catch (e) {
+              console.error('[Burn] render/bind error:', e);
+            }
+          }
+          return;
+        }
+        if (tries < 300) setTimeout(tick, 50);
+      }
+      tick();
+    })();
+  </script>
   <script>
     // 全局 UI 更新函数：paxi-sdk.js 的 connectWallet/disconnectWallet 会调用它
     // 必须挂在 window 上，否则 SDK 检测 typeof updateWalletUI === 'function' 会失败

@@ -31,19 +31,15 @@ const TETRIS_KEYS = Object.keys(TETROMINOES);
 function renderTetris() {
   return `
     <div class="card">
-      <div class="card-title">🟦 ${t('tetris.title')}</div>
-      <div style="text-align:center;margin-bottom:10px;">
-        <div style="font-size:13px;color:var(--text-muted);margin-bottom:8px;">${t('tetris.desc')}</div>
-        <div style="display:flex;gap:8px;justify-content:center;margin-bottom:8px;flex-wrap:wrap;">
-          <span style="background:var(--bg);padding:4px 10px;border-radius:6px;font-size:12px;">${t('tetris.score')}: <b id="tetrisScore" style="color:var(--primary)">0</b></span>
-          <span style="background:var(--bg);padding:4px 10px;border-radius:6px;font-size:12px;">${t('tetris.lines')}: <b id="tetrisLines" style="color:var(--success)">0</b></span>
-          ${GamePay.roundsBadge('tetris')}
-        </div>
+      <div style="display:flex;gap:8px;justify-content:center;margin:4px 0 10px;flex-wrap:wrap;">
+        <span style="background:var(--bg);padding:4px 10px;border-radius:6px;font-size:12px;">${t('tetris.score')}: <b id="tetrisScore" style="color:var(--primary)">0</b></span>
+        <span style="background:var(--bg);padding:4px 10px;border-radius:6px;font-size:12px;">${t('tetris.lines')}: <b id="tetrisLines" style="color:var(--success)">0</b></span>
+        ${GamePay.roundsBadge('tetris')}
       </div>
       <div style="position:relative;display:flex;justify-content:center;">
         <canvas id="tetrisCanvas" width="${TETRIS_W}" height="${TETRIS_H}" style="background:#0a0a1a;border-radius:8px;touch-action:none;max-width:100%;height:auto;"></canvas>
         <div id="gpOverlay" style="position:absolute;top:0;left:0;right:0;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,0.75);border-radius:8px;z-index:10;">
-          ${GamePay.overlayHTML('tetris', 'tetris.title', 'tetris.desc')}
+          ${GamePay.overlayHTML('tetris', 'tetris.title', 'tetris.controls')}
         </div>
       </div>
       <div style="display:flex;gap:12px;justify-content:center;align-items:center;margin-top:14px;flex-wrap:wrap;">
@@ -53,7 +49,6 @@ function renderTetris() {
         <button type="button" id="tetrisBtnDown" class="tetris-btn">▼</button>
         <button type="button" id="tetrisBtnDrop" class="tetris-btn">⤓</button>
       </div>
-      <div style="text-align:center;margin-top:12px;font-size:11px;color:var(--text-muted);">${t('tetris.controls')}</div>
     </div>
     <style>
       .tetris-btn{

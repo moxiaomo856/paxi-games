@@ -24,22 +24,17 @@ const KLOTSKI_LAYOUT = [
 function renderKlotski() {
   return `
     <div class="card">
-      <div class="card-title">🧩 ${t('klotski.title')}</div>
-      <div style="text-align:center;margin-bottom:10px;">
-        <div style="font-size:13px;color:var(--text-muted);margin-bottom:8px;">${t('klotski.desc')}</div>
-        <div style="display:flex;gap:8px;justify-content:center;margin-bottom:8px;flex-wrap:wrap;">
-          <span style="background:var(--bg);padding:4px 10px;border-radius:6px;font-size:12px;">${t('klotski.moves')}: <b id="klotskiMoves" style="color:var(--primary)">0</b></span>
-          ${GamePay.roundsBadge('klotski')}
-          <button id="klotskiResetBtn" style="padding:3px 10px;font-size:12px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:var(--text);border-radius:6px;cursor:pointer;">' + t('klotski.reset') + '</button>
-        </div>
+      <div style="display:flex;gap:8px;justify-content:center;margin:4px 0 10px;flex-wrap:wrap;align-items:center;">
+        <span style="background:var(--bg);padding:4px 10px;border-radius:6px;font-size:12px;">${t('klotski.moves')}: <b id="klotskiMoves" style="color:var(--primary)">0</b></span>
+        ${GamePay.roundsBadge('klotski')}
+        <button id="klotskiResetBtn" style="padding:3px 10px;font-size:12px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:var(--text);border-radius:6px;cursor:pointer;">${t('klotski.reset')}</button>
       </div>
       <div style="position:relative;display:flex;justify-content:center;">
         <div id="klotskiBoard" style="width:280px;max-width:100%;height:auto;aspect-ratio:4/5;background:#8b6f47;border:3px solid #5c4530;border-radius:8px;position:relative;touch-action:none;"></div>
         <div id="gpOverlay" style="position:absolute;top:0;left:0;right:0;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,0.75);border-radius:8px;z-index:10;">
-          ${GamePay.overlayHTML('klotski', 'klotski.title', 'klotski.desc')}
+          ${GamePay.overlayHTML('klotski', 'klotski.title', 'klotski.controls')}
         </div>
       </div>
-      <div style="text-align:center;margin-top:12px;font-size:11px;color:var(--text-muted);">${t('klotski.controls')}</div>
     </div>
   `;
 }

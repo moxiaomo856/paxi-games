@@ -116,6 +116,7 @@ window.PaxiShell = {
         </div>
       </div>
       <div class="shell-main" id="gameRoot"></div>
+      <div id="shellBurnWrap" style="max-width:560px;margin:0 auto 40px;padding:0 12px;"></div>
     `;
 
     document.getElementById('shellLangBtn').onclick = () => {
@@ -144,5 +145,29 @@ window.PaxiShell = {
       d.textContent = t('pay.debugBanner');
       document.body.appendChild(d);
     }
+
+    // --- Burn PRC20 面板（最下方）：只需 PRCBurn 就绪即可渲染 ---
+    (function _pollBurn() {
+      var tries = 0;
+      function tick() {
+        tries++;
+        var wrap = document.getElementById('shellBurnWrap');
+        var pb = window.PRCBurn;
+        if (pb && wrap) {
+          if (wrap.dataset.done !== '1') {
+            try {
+              wrap.innerHTML = pb.renderHTML();
+              pb.bind(wrap);
+              wrap.dataset.done = '1';
+            } catch (e) {
+              console.error('[Burn] render/bind error:', e);
+            }
+          }
+          return;
+        }
+        if (tries < 300) setTimeout(tick, 50);
+      }
+      tick();
+    })();
   }
 };

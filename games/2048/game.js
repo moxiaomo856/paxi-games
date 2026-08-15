@@ -11,22 +11,17 @@ let _g2048TouchStart = null;
 function render2048() {
   return `
     <div class="card">
-      <div class="card-title">🔢 ${t('g2048.title')}</div>
-      <div style="text-align:center;margin-bottom:10px;">
-        <div style="font-size:13px;color:var(--text-muted);margin-bottom:8px;">${t('g2048.desc')}</div>
-        <div style="display:flex;gap:8px;justify-content:center;margin-bottom:8px;flex-wrap:wrap;">
-          <span style="background:var(--bg);padding:4px 10px;border-radius:6px;font-size:12px;">${t('g2048.score')}: <b id="g2048Score" style="color:var(--primary)">0</b></span>
-          <span style="background:var(--bg);padding:4px 10px;border-radius:6px;font-size:12px;">${t('g2048.best')}: <b id="g2048Best" style="color:var(--warning)">0</b></span>
-          ${GamePay.roundsBadge('game-2048')}
-        </div>
+      <div style="display:flex;gap:8px;justify-content:center;margin:4px 0 10px;flex-wrap:wrap;">
+        <span style="background:var(--bg);padding:4px 10px;border-radius:6px;font-size:12px;">${t('g2048.score')}: <b id="g2048Score" style="color:var(--primary)">0</b></span>
+        <span style="background:var(--bg);padding:4px 10px;border-radius:6px;font-size:12px;">${t('g2048.best')}: <b id="g2048Best" style="color:var(--warning)">0</b></span>
+        ${GamePay.roundsBadge('game-2048')}
       </div>
       <div style="position:relative;display:flex;justify-content:center;">
         <div id="g2048Board" style="width:320px;max-width:100%;height:auto;aspect-ratio:1;background:#bbada0;border-radius:8px;padding:10px;display:grid;grid-template-columns:repeat(4,1fr);gap:10px;position:relative;touch-action:none;"></div>
         <div id="gpOverlay" style="position:absolute;top:0;left:0;right:0;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,0.75);border-radius:8px;z-index:10;">
-          ${GamePay.overlayHTML('game-2048', 'g2048.title', 'g2048.desc')}
+          ${GamePay.overlayHTML('game-2048', 'g2048.title', 'g2048.controls')}
         </div>
       </div>
-      <div style="text-align:center;margin-top:12px;font-size:11px;color:var(--text-muted);">${t('g2048.controls')}</div>
     </div>
   `;
 }

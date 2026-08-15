@@ -120,13 +120,16 @@ async function refreshBalance() {
 // ============================================================
 async function simulateGas(messages, memo, sequence, pubKey) {
   const denom = getDenom();
+  // 【已优化】静态估算下调：MsgSend 实际约 5.5~6.5 万 gas；留出小余地
   let gasSum = 0;
   for (const msg of messages) {
-    if (msg.typeUrl?.includes('MsgSend')) gasSum += 90000;
-    else gasSum += 200000;
+    if (msg.typeUrl?.includes('MsgSend')) gasSum += 65000;
+    else if (msg.typeUrl?.includes('MsgExecuteContract')) gasSum += 160000;
+    else gasSum += 120000;
   }
-  const dummyGas = gasSum + 100000;
-  const dummyFee = { amount: [PaxiCosmJS.coins(Math.floor(dummyGas * 0.25).toString(), denom)[0]], gasLimit: BigInt(dummyGas) };
+  const dummyGas = gasSum + 20000;
+  // 模拟 Gas 单价降低：0.25 → 0.08 upaxi/gas，仅用于 simulate 时不会因为 Fee 太少失败
+  const dummyFee = { amount: [PaxiCosmJS.coins(Math.max(1, Math.floor(dummyGas * 0.08)).toString(), denom)[0]], gasLimit: BigInt(dummyGas) };
 
   const pubkeyBytes = typeof pubKey === 'string' ? fromBase64(pubKey) : new Uint8Array(pubKey);
   const pubkeyAny = {
@@ -168,18 +171,20 @@ async function buildSignAndBroadcast(messages, memo, gasLimit, wallet) {
   const accountNumber = Number(account.account_number);
   const sequence = Number(account.sequence);
 
-  // Gas：模拟 + 15% 缓冲，失败降级为静态估算
-  let totalGas = gasLimit || 200000;
+  // Gas：模拟 + 5% 缓冲（原为15%），失败降级为静态估算，均已下调
+  let totalGas = gasLimit || 120000;
   if (!gasLimit) {
     try {
       const sim = await simulateGas(messages, memo, sequence, pubKey);
-      if (sim > 0) totalGas = Math.floor(sim * 1.15);
+      if (sim > 0) totalGas = Math.floor(sim * 1.05);
     } catch (e) { console.warn('[Tx] simulate 降级:', e.message); }
   }
 
   const txBody = PaxiCosmJS.TxBody.fromPartial({ messages, memo });
+  // 【优化】Gas 单价：原 0.25 → 0.08 upaxi/gas，成本省 ~70%
+  //  0.08 * 8万 gas ≈ 0.0064 PAXI 手续费
   const fee = {
-    amount: [PaxiCosmJS.coins(Math.floor(totalGas * 0.25).toString(), cfg.denom)[0]],
+    amount: [PaxiCosmJS.coins(Math.max(1, Math.floor(totalGas * 0.08)).toString(), cfg.denom)[0]],
     gasLimit: BigInt(totalGas),
   };
   const pubkeyBytes = typeof pubKey === 'string' ? fromBase64(pubKey) : new Uint8Array(pubKey);

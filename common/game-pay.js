@@ -62,11 +62,10 @@ window.GamePay = {
 
   // ---------- UI ----------
   _rulesHTML() {
+    // 每个游戏提示只在上面提一次（大厅），这里只显示玩家状态
     const c = this.cfg();
-    return `<div style="font-size:12px;color:var(--text-muted);line-height:1.9;margin-bottom:14px;text-align:center;">
-      💚 ${t('pay.freeLeft')}：<b style="color:var(--success)">${this.getFreeRevives()}</b>　🎟 ${t('pay.credits')}：<b style="color:var(--warning)">${this.getCredits()}</b><br>
-      💰 ${t('lobby.heroL2', { s: '<b>' + this.reviveSingleCostStr() + '</b>', d: '<b>' + this.reviveDoubleCostStr() + '</b>' })}<br>
-      🏦 ${t('pay.collect', { n: c.payeeAddresses.length })}
+    return `<div style="font-size:12px;color:var(--text-muted);line-height:1.7;margin-bottom:10px;text-align:center;">
+      💚 ${t('pay.freeLeft')}：<b style="color:var(--success)">${this.getFreeRevives()}</b>　🎟 ${t('pay.credits')}：<b style="color:var(--warning)">${this.getCredits()}</b>
     </div>`;
   },
 

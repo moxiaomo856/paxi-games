@@ -17,23 +17,18 @@ const SHARDS_H = 480;
 function renderShards() {
   return `
     <div class="card">
-      <div class="card-title">💠 ${t('game.shards')}</div>
-      <div style="text-align:center;margin-bottom:10px;">
-        <div style="font-size:13px;color:var(--text-muted);margin-bottom:8px;">${t('shards.desc')}</div>
-        <div style="display:flex;gap:8px;justify-content:center;margin-bottom:8px;flex-wrap:wrap;">
-          <span style="background:var(--bg);padding:4px 10px;border-radius:6px;font-size:12px;">${t('shards.score')}: <b id="shardsScore" style="color:var(--primary)">0</b></span>
-          <span style="background:var(--bg);padding:4px 10px;border-radius:6px;font-size:12px;">❤ <b id="shardsHp" style="color:var(--success)">3</b></span>
-          ${GamePay.roundsBadge('shards')}
-        </div>
+      <div style="display:flex;gap:8px;justify-content:center;margin:4px 0 10px;flex-wrap:wrap;">
+        <span style="background:var(--bg);padding:4px 10px;border-radius:6px;font-size:12px;">${t('shards.score')}: <b id="shardsScore" style="color:var(--primary)">0</b></span>
+        <span style="background:var(--bg);padding:4px 10px;border-radius:6px;font-size:12px;">❤ <b id="shardsHp" style="color:var(--success)">3</b></span>
+        ${GamePay.roundsBadge('shards')}
       </div>
       <div style="position:relative;display:flex;justify-content:center;">
         <canvas id="shardsCanvas" width="${SHARDS_W}" height="${SHARDS_H}" style="background:linear-gradient(180deg,#12142e 0%,#0a0a1a 100%);border-radius:8px;touch-action:none;max-width:100%;height:auto;"></canvas>
         <div id="gpOverlay" style="position:absolute;top:0;left:0;right:0;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,0.75);border-radius:8px;z-index:10;">
-          ${GamePay.overlayHTML('shards', 'game.shards', 'shards.desc')}
+          ${GamePay.overlayHTML('shards', 'game.shards', 'shards.controls')}
         </div>
       </div>
       <div id="shardsProof" style="text-align:center;margin-top:8px;font-family:monospace;font-size:10px;color:var(--text-muted);min-height:14px;word-break:break-all;"></div>
-      <div style="text-align:center;margin-top:6px;font-size:11px;color:var(--text-muted);">${t('shards.controls')}</div>
     </div>
   `;
 }

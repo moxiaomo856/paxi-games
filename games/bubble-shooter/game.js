@@ -20,21 +20,16 @@ const BUBBLE_COLORS = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6'];
 function renderBubbleShooter() {
   return `
     <div class="card">
-      <div class="card-title">🫧 ${t('bubble.title')}</div>
-      <div style="text-align:center;margin-bottom:10px;">
-        <div style="font-size:13px;color:var(--text-muted);margin-bottom:8px;">${t('bubble.desc')}</div>
-        <div style="display:flex;gap:8px;justify-content:center;margin-bottom:8px;flex-wrap:wrap;">
-          <span style="background:var(--bg);padding:4px 10px;border-radius:6px;font-size:12px;">${t('bubble.score')}: <b id="bubbleScore" style="color:var(--primary)">0</b></span>
-          ${GamePay.roundsBadge('bubble-shooter')}
-        </div>
+      <div style="display:flex;gap:8px;justify-content:center;margin:4px 0 10px;flex-wrap:wrap;">
+        <span style="background:var(--bg);padding:4px 10px;border-radius:6px;font-size:12px;">${t('bubble.score')}: <b id="bubbleScore" style="color:var(--primary)">0</b></span>
+        ${GamePay.roundsBadge('bubble-shooter')}
       </div>
       <div style="position:relative;display:flex;justify-content:center;">
         <canvas id="bubbleCanvas" width="${BUBBLE_W}" height="${BUBBLE_H}" style="background:linear-gradient(180deg,#1a1a3a 0%,#0a0a1a 100%);border-radius:8px;touch-action:none;max-width:100%;height:auto;"></canvas>
         <div id="gpOverlay" style="position:absolute;top:0;left:0;right:0;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,0.75);border-radius:8px;z-index:10;">
-          ${GamePay.overlayHTML('bubble-shooter', 'bubble.title', 'bubble.desc')}
+          ${GamePay.overlayHTML('bubble-shooter', 'bubble.title', 'bubble.controls')}
         </div>
       </div>
-      <div style="text-align:center;margin-top:12px;font-size:11px;color:var(--text-muted);">${t('bubble.controls')}</div>
     </div>
   `;
 }

@@ -11,9 +11,7 @@ let _minerTimer = null;
 function renderMiner() {
   return `
     <div class="card">
-      <div class="card-title">⛏️ ${t('game.blockchain-miner')}</div>
-      <div style="text-align:center;font-size:12px;color:var(--text-muted);margin-bottom:10px;">${t('miner.desc')}</div>
-      <div style="background:var(--bg);border-radius:10px;padding:12px;margin-bottom:12px;">
+      <div style="background:var(--bg);border-radius:10px;padding:12px;margin-bottom:12px;margin-top:4px;">
         <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-muted);margin-bottom:4px;">
           <span>${t('miner.progress')}: <b id="minerProgress" style="color:var(--primary)">0%</b></span>
           <span>${t('miner.power')}: <b id="minerPower" style="color:var(--success)">100</b></span>
@@ -33,10 +31,9 @@ function renderMiner() {
           <div id="minerEvent" style="margin-top:6px;font-size:13px;min-height:20px;color:var(--danger)"></div>
         </div>
         <div id="gpOverlay" style="position:absolute;top:-40px;left:0;right:0;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,0.75);border-radius:8px;z-index:10;">
-          ${GamePay.overlayHTML('blockchain-miner', 'game.blockchain-miner', 'miner.desc')}
+          ${GamePay.overlayHTML('blockchain-miner', 'game.blockchain-miner', 'miner.controls')}
         </div>
       </div>
-      <div style="text-align:center;margin-top:12px;font-size:11px;color:var(--text-muted);">${t('miner.controls')}</div>
     </div>
   `;
 }
