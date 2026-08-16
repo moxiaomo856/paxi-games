@@ -1,6 +1,5 @@
 /**
- * ➡️ 箭头消除（全屏遮罩版）
- * 棋盘撑满宽度，遮罩全屏覆盖，开始按钮大而清晰
+ * ➡️ 箭头消除（全屏遮罩版）- 遮罩全屏撑满
  */
 if (!window.TOOL_REGISTRY) window.TOOL_REGISTRY = {};
 
@@ -106,7 +105,6 @@ function renderArrowPuzzle() {
         <span style="background:var(--bg);padding:4px 10px;border-radius:6px;font-size:12px;">❤️ <b id="arrowHearts" style="color:var(--danger)">5</b></span>
         ${GamePay.roundsBadge('arrow-puzzle')}
       </div>
-      <!-- 棋盘容器：撑满宽度，高度自动 -->
       <div style="position:relative;width:100%;max-width:420px;margin:0 auto;">
         <div id="arrowBoard" style="display:grid;gap:5px;padding:10px;background:#18212b;border-radius:16px;width:100%;touch-action:manipulation;"></div>
       </div>
@@ -116,8 +114,8 @@ function renderArrowPuzzle() {
       </div>
       <div id="arrowStatus" style="text-align:center;color:var(--text-muted);font-size:13px;margin-top:10px;min-height:20px;">${t('arrow.desc')}</div>
     </div>
-    <!-- 全屏遮罩：独立于棋盘，覆盖整个视口 -->
-    <div id="gpOverlay" style="position:fixed;top:0;left:0;right:0;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,0.88);z-index:9999;padding:30px;box-sizing:border-box;">
+    <!-- 全屏遮罩：padding:10px 让内容尽量撑满 -->
+    <div id="gpOverlay" style="position:fixed;top:0;left:0;right:0;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,0.88);z-index:9999;padding:10px;box-sizing:border-box;">
       ${GamePay.overlayHTML('arrow-puzzle', 'game.arrow-puzzle', 'arrow.controls')}
     </div>
     <style>
@@ -157,27 +155,29 @@ function renderArrowPuzzle() {
       }
       .arrow-cell.dimmed{opacity:0.5;}
 
-      /* ---- 全屏遮罩样式 ---- */
+      /* ---- 全屏遮罩样式（撑满全屏） ---- */
       #gpOverlay #gpOverlayTitle{
-        font-size:30px!important;
-        margin-bottom:12px!important;
+        font-size:36px!important;
+        margin-bottom:16px!important;
         text-align:center;
         color:#fff!important;
+        font-weight:900!important;
       }
       #gpOverlay #gpOverlaySub{
-        font-size:18px!important;
-        margin-bottom:20px!important;
-        line-height:1.8;
+        font-size:20px!important;
+        margin-bottom:24px!important;
+        line-height:2;
         max-width:100%;
         text-align:center;
         color:#b0c4e8!important;
       }
       #gpOverlay #gpStartBtn{
-        min-width:240px!important;
-        font-size:22px!important;
-        padding:16px 32px!important;
+        min-width:280px!important;
+        font-size:24px!important;
+        padding:18px 40px!important;
         border-radius:60px!important;
         background:linear-gradient(90deg,#8fb0ff,#6d8dff)!important;
+        font-weight:800!important;
       }
       #gpOverlay .btn{
         font-size:20px!important;
@@ -186,9 +186,17 @@ function renderArrowPuzzle() {
         border-radius:60px!important;
       }
       #gpOverlay div[style*="font-size:11px"]{
-        font-size:15px!important;
+        font-size:16px!important;
         color:#8b93bd!important;
-        margin-top:10px!important;
+        margin-top:12px!important;
+      }
+      #gpOverlay div[style*="font-size:12px"]{
+        font-size:18px!important;
+        color:#8b93bd!important;
+        margin-bottom:8px!important;
+      }
+      #gpOverlay b{
+        font-size:22px!important;
       }
 
       @keyframes shake{0%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}100%{transform:translateX(0)}}
@@ -203,7 +211,6 @@ function bindArrowEvents() {
 function startArrowGame(keepScore) {
   if (!GamePay.consumeRound('arrow-puzzle')) return;
 
-  // 隐藏全屏遮罩
   const overlay = document.getElementById('gpOverlay');
   if (overlay) overlay.style.display = 'none';
 
@@ -447,7 +454,6 @@ function _renderBoard() {
 
   board.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
   board.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
-  // 不设置 aspect-ratio，让高度由内容撑起，宽度撑满
 
   board.innerHTML = '';
   const grid = s.grid;
