@@ -1,59 +1,197 @@
 /**
- * ➡️ Arrow Flow — 箭头解谜（参照 Arrow Flow: Tap Away Puzzle）
- *
- * 核心玩法：
- *   棋盘上布满蜿蜒的箭头链条，箭头相互勾连、盘旋、缠绕。
- *   点击一个箭头 → 沿其方向追踪整条流路径（flow path）：
- *     每个箭头的方向指向下一个格子，若该格有箭头则继续追踪其方向，
- *     直到飞出棋盘边缘（可消除）或遇到空格（被阻挡）。
- *   整条弯曲链条一起滑出棋盘 → 清空全盘过关。
- *
- * 生成算法：
- *   从边缘向内构建链条，每个箭头指向前一个（靠边的）箭头。
- *   链条可以转弯，形成弯曲的流路径。
- *   生成后验证每个箭头的流路径都能到达边缘（保证 100% 可解）。
+ * ➡️ 箭头消除（全屏遮罩版）
+ * 棋盘撑满宽度，遮罩全屏覆盖，开始按钮大而清晰
  */
 if (!window.TOOL_REGISTRY) window.TOOL_REGISTRY = {};
 
 let _arrowState = null;
+let _arrowHintTimer = null;
 
-const ARROW_DIR = {
-  up:    { dx: 0,  dy: -1, glyph: '⬆', deg: 270 },
-  down:  { dx: 0,  dy: 1,  glyph: '⬇', deg: 90 },
-  left:  { dx: -1, dy: 0,  glyph: '⬅', deg: 180 },
-  right: { dx: 1,  dy: 0,  glyph: '➡', deg: 0 },
+const MAX_LEVEL = 268;
+
+const DIR_MAP = {
+  '↑': { dx: 0, dy: -1 },
+  '↓': { dx: 0, dy: 1 },
+  '←': { dx: -1, dy: 0 },
+  '→': { dx: 1, dy: 0 }
 };
-const ARROW_KEYS = Object.keys(ARROW_DIR);
+const ARROWS = ['↑', '↓', '←', '→'];
+
+const DIR_COLORS = {
+  '↑': '#ff6b6b',
+  '↓': '#4dabf7',
+  '←': '#69db7c',
+  '→': '#da77f2'
+};
+const DIR_COLORS_DIMMED = {
+  '↑': '#6b4a4a',
+  '↓': '#4a5a6b',
+  '←': '#4a6b4a',
+  '→': '#6b4a6b'
+};
+
+function _getBoardSize(level) {
+  if (level <= 10) return { cols: 5, rows: 7 };
+  if (level <= 50) return { cols: 5, rows: 8 };
+  if (level <= 100) return { cols: 6, rows: 9 };
+  if (level <= 150) return { cols: 6, rows: 10 };
+  if (level <= 200) return { cols: 7, rows: 11 };
+  if (level <= 250) return { cols: 7, rows: 12 };
+  return { cols: 8, rows: 13 };
+}
+
+function _generateGrid(level) {
+  const size = _getBoardSize(level);
+  const cols = size.cols;
+  const rows = size.rows;
+  const emptyRatio = Math.min(0.5, 0.1 + level * 0.002);
+  const grid = Array(rows).fill(null).map(() => Array(cols).fill(null));
+  let placed = 0;
+
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      if (Math.random() < emptyRatio) continue;
+      const shuffled = ARROWS.slice().sort(() => Math.random() - 0.5);
+      for (const dir of shuffled) {
+        const d = DIR_MAP[dir];
+        const nr = r + d.dy, nc = c + d.dx;
+        if (nr < 0 || nr >= rows || nc < 0 || nc >= cols || grid[nr][nc] === null) {
+          grid[r][c] = dir;
+          placed++;
+          break;
+        }
+      }
+    }
+  }
+
+  const minPlaced = Math.max(4, Math.min(cols, rows));
+  if (placed < minPlaced) {
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        if (grid[r][c] === null) {
+          const candidates = ARROWS.filter(dir => {
+            const d = DIR_MAP[dir];
+            const nr = r + d.dy, nc = c + d.dx;
+            return nr < 0 || nr >= rows || nc < 0 || nc >= cols || grid[nr][nc] === null;
+          });
+          if (candidates.length > 0) {
+            grid[r][c] = candidates[0];
+            placed++;
+          }
+        }
+        if (placed >= minPlaced * 2) break;
+      }
+      if (placed >= minPlaced * 2) break;
+    }
+  }
+  return grid;
+}
+
+function _isRemovable(grid, r, c) {
+  const ch = grid[r][c];
+  if (!ch) return false;
+  const d = DIR_MAP[ch];
+  const nr = r + d.dy, nc = c + d.dx;
+  const rows = grid.length;
+  const cols = grid[0].length;
+  return nr < 0 || nr >= rows || nc < 0 || nc >= cols || grid[nr][nc] === null;
+}
 
 function renderArrowPuzzle() {
   return `
-    <div class="card">
+    <div class="card" style="position:relative;overflow:visible;">
       <div style="display:flex;gap:8px;justify-content:center;margin:4px 0 10px;flex-wrap:wrap;">
-        <span style="background:var(--bg);padding:4px 10px;border-radius:6px;font-size:12px;">${t('arrow.level')}: <b id="arrowLevel" style="color:var(--primary)">1</b></span>
-        <span style="background:var(--bg);padding:4px 10px;border-radius:6px;font-size:12px;">${t('arrow.cleared')}: <b id="arrowScore" style="color:var(--warning)">0</b></span>
+        <span style="background:var(--bg);padding:4px 10px;border-radius:6px;font-size:12px;">📚 ${t('arrow.level')}: <b id="arrowLevel" style="color:var(--primary)">1</b>/268</span>
+        <span style="background:var(--bg);padding:4px 10px;border-radius:6px;font-size:12px;">🏆 ${t('arrow.cleared')}: <b id="arrowScore" style="color:var(--warning)">0</b></span>
+        <span style="background:var(--bg);padding:4px 10px;border-radius:6px;font-size:12px;">❤️ <b id="arrowHearts" style="color:var(--danger)">5</b></span>
+        ${GamePay.roundsBadge('arrow-puzzle')}
       </div>
-      <div style="position:relative;display:flex;justify-content:center;">
-        <div id="arrowBoard" style="display:grid;gap:3px;padding:10px;background:#0a0d1c;border-radius:12px;touch-action:manipulation;"></div>
-        <div id="gpOverlay" style="position:absolute;top:0;left:0;right:0;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,0.75);border-radius:8px;z-index:10;">
-          ${GamePay.overlayHTML('arrow-puzzle', 'game.arrow-puzzle', 'arrow.controls')}
-        </div>
+      <!-- 棋盘容器：撑满宽度，高度自动 -->
+      <div style="position:relative;width:100%;max-width:420px;margin:0 auto;">
+        <div id="arrowBoard" style="display:grid;gap:5px;padding:10px;background:#18212b;border-radius:16px;width:100%;touch-action:manipulation;"></div>
       </div>
+      <div style="display:flex;gap:8px;justify-content:center;margin-top:12px;">
+        <button id="arrowHintBtn" class="btn sec" style="flex:1;">💡 ${t('arrow.hint')}</button>
+        <button id="arrowRestartBtn" class="btn sec" style="flex:1;">🔄 ${t('arrow.restart')}</button>
+      </div>
+      <div id="arrowStatus" style="text-align:center;color:var(--text-muted);font-size:13px;margin-top:10px;min-height:20px;">${t('arrow.desc')}</div>
+    </div>
+    <!-- 全屏遮罩：独立于棋盘，覆盖整个视口 -->
+    <div id="gpOverlay" style="position:fixed;top:0;left:0;right:0;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,0.88);z-index:9999;padding:30px;box-sizing:border-box;">
+      ${GamePay.overlayHTML('arrow-puzzle', 'game.arrow-puzzle', 'arrow.controls')}
     </div>
     <style>
-      @keyframes arrow-shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
-      @keyframes arrow-pulse{0%,100%{box-shadow:0 0 4px rgba(255,255,255,.15)}50%{box-shadow:0 0 14px rgba(255,255,255,.45)}}
-      .arrow-cell.shake{animation:arrow-shake .25s}
-      .arrow-cell{display:flex;align-items:center;justify-content:center;border-radius:7px;cursor:pointer;
-        user-select:none;-webkit-user-select:none;font-size:20px;
-        transition:transform .45s cubic-bezier(.34,1.1,.64,1),opacity .45s,box-shadow .2s;
-        border:1px solid var(--border);background:var(--bg2);position:relative}
-      .arrow-cell.c-up{background:#243256;color:#8fb0ff}
-      .arrow-cell.c-down{background:#562430;color:#ff9c8f}
-      .arrow-cell.c-left{background:#2b4536;color:#8fd9a8}
-      .arrow-cell.c-right{background:#4d3a56;color:#d3a8ff}
-      .arrow-cell.empty{background:transparent;border:1px dashed rgba(255,255,255,.05);cursor:default}
-      .arrow-cell.highlight{animation:arrow-pulse 1s ease-in-out infinite;border-color:rgba(255,255,255,.5);z-index:2}
-      .arrow-cell.removing{pointer-events:none}
+      .arrow-cell{
+        aspect-ratio:1;
+        background:#2c3d4f;
+        border-radius:8px;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        font-size:clamp(24px, 6.5vw, 40px);
+        font-weight:900;
+        color:#dbeafe;
+        box-shadow:0 3px 0 #0f171f, inset 0 -2px 4px rgba(0,0,0,0.3);
+        transition:all 0.1s;
+        cursor:pointer;
+        touch-action:manipulation;
+        text-shadow:0 2px 4px rgba(0,0,0,0.5);
+      }
+      .arrow-cell:active{transform:scale(0.92);}
+      .arrow-cell.empty{
+        background:#1f2c38;
+        box-shadow:inset 0 2px 6px rgba(0,0,0,0.4);
+        color:transparent;
+        pointer-events:none;
+        text-shadow:none;
+      }
+      .arrow-cell.wrong{background:#a03a4a!important;animation:shake 0.2s;}
+      .arrow-cell.hint-highlight{
+        box-shadow:0 0 16px #7ddf7d, 0 0 30px #7ddf7d;
+        border:2px solid #7ddf7d;
+      }
+      .arrow-cell.flying{
+        transition:transform 0.5s cubic-bezier(0.34, 1.1, 0.64, 1), opacity 0.5s;
+        pointer-events:none;
+        z-index:5;
+      }
+      .arrow-cell.dimmed{opacity:0.5;}
+
+      /* ---- 全屏遮罩样式 ---- */
+      #gpOverlay #gpOverlayTitle{
+        font-size:30px!important;
+        margin-bottom:12px!important;
+        text-align:center;
+        color:#fff!important;
+      }
+      #gpOverlay #gpOverlaySub{
+        font-size:18px!important;
+        margin-bottom:20px!important;
+        line-height:1.8;
+        max-width:100%;
+        text-align:center;
+        color:#b0c4e8!important;
+      }
+      #gpOverlay #gpStartBtn{
+        min-width:240px!important;
+        font-size:22px!important;
+        padding:16px 32px!important;
+        border-radius:60px!important;
+        background:linear-gradient(90deg,#8fb0ff,#6d8dff)!important;
+      }
+      #gpOverlay .btn{
+        font-size:20px!important;
+        padding:14px 28px!important;
+        min-height:56px!important;
+        border-radius:60px!important;
+      }
+      #gpOverlay div[style*="font-size:11px"]{
+        font-size:15px!important;
+        color:#8b93bd!important;
+        margin-top:10px!important;
+      }
+
+      @keyframes shake{0%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}100%{transform:translateX(0)}}
     </style>
   `;
 }
@@ -62,303 +200,287 @@ function bindArrowEvents() {
   GamePay.bindStart('arrow-puzzle', () => startArrowGame());
 }
 
-// ============================================================
-// 流路径（Flow Path）追踪
-// 从 (x,y) 出发，沿每个箭头的方向追蹤下一条格：
-//   - 格子有箭头 → 加入路径，继续追蹤该箭头的方向
-//   - 飞出棋盘 → 路径畅通，整条链可消除
-//   - 空格 / 环 → 被阻挡
-// ============================================================
-function _findFlow(grid, size, startX, startY) {
-  const flow = [];
-  const visited = new Set();
-  let cx = startX, cy = startY;
-
-  while (true) {
-    const key = cx + ',' + cy;
-    if (visited.has(key)) return { flow: [], canExit: false }; // 环
-    visited.add(key);
-
-    const arrow = grid[cy] && grid[cy][cx];
-    if (!arrow) return { flow: [], canExit: false }; // 空格，阻断
-
-    flow.push({ x: cx, y: cy, dir: arrow.dir });
-    const d = ARROW_DIR[arrow.dir];
-    cx += d.dx;
-    cy += d.dy;
-
-    if (cx < 0 || cx >= size || cy < 0 || cy >= size) {
-      return { flow, canExit: true }; // 飞出边缘
-    }
-  }
-}
-
-// 验证：每个箭头的流路径都能到达边缘
-function _verifyAllFlows(grid, size) {
-  for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) {
-      if (grid[y][x]) {
-        const { canExit } = _findFlow(grid, size, x, y);
-        if (!canExit) return false;
-      }
-    }
-  }
-  return true;
-}
-
-// ============================================================
-// 关卡生成：从边缘向内构建弯曲链条
-// 每个链条：起点在边缘，首箭头指向外（出口）；
-//   后续箭头从前一个箭头的某个相邻空格延伸，方向指向前一个箭头。
-//   链条可以转弯 → 形成蜿蜒、勾连的流路径。
-// ============================================================
-function _arrowGenLevel(level) {
-  const size = Math.min(7, 3 + level);
-  const targetCount = Math.min(size * size - 1, 6 + level * 4);
-
-  for (let attempt = 0; attempt < 40; attempt++) {
-    const grid = Array(size).fill(null).map(() => Array(size).fill(null));
-    let placed = 0;
-    let failedTries = 0;
-
-    while (placed < targetCount && failedTries < 30) {
-      const chain = _genOneChain(grid, size);
-      if (!chain || chain.length === 0) { failedTries++; continue; }
-
-      // 放置链条并验证
-      for (const c of chain) grid[c.y][c.x] = { dir: c.dir };
-
-      if (_verifyAllFlows(grid, size)) {
-        placed += chain.length;
-      } else {
-        // 回滚
-        for (const c of chain) grid[c.y][c.x] = null;
-        failedTries++;
-      }
-    }
-
-    if (placed >= Math.min(targetCount, 4)) {
-      return { grid, size, remaining: placed };
-    }
-  }
-
-  // 兜底：简单关卡
-  return _arrowGenFallback(size);
-}
-
-// 生成一条弯曲链条：从边缘出发，向内蜿蜒
-function _genOneChain(grid, size) {
-  // 收集所有边缘空格作为出口候选
-  const edges = [];
-  for (let i = 0; i < size; i++) {
-    if (!grid[0][i]) edges.push({ x: i, y: 0, exitDir: 'up' });
-    if (!grid[size-1][i]) edges.push({ x: i, y: size-1, exitDir: 'down' });
-    if (!grid[i][0]) edges.push({ x: 0, y: i, exitDir: 'left' });
-    if (!grid[i][size-1]) edges.push({ x: size-1, y: i, exitDir: 'right' });
-  }
-  // 随机打乱
-  for (let i = edges.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [edges[i], edges[j]] = [edges[j], edges[i]];
-  }
-
-  for (const edge of edges) {
-    const chain = _buildChain(grid, size, edge.x, edge.y, edge.exitDir);
-    if (chain && chain.length >= 2) return chain;
-  }
-  return null;
-}
-
-// 从 (ex, ey) 出口向内构建链条
-// 第一个箭头在 (ex, ey)，方向 = exitDir（指向边缘外）
-// 后续箭头在前一个箭头的相邻空格，方向指向前一个箭头
-function _buildChain(grid, size, ex, ey, exitDir) {
-  const chain = [{ x: ex, y: ey, dir: exitDir }];
-  const inChain = new Set([ex + ',' + ey]);
-  const desiredLen = 3 + Math.floor(Math.random() * 5); // 3~7
-  let prevX = ex, prevY = ey;
-  const OPPOSITE = { up: 'down', down: 'up', left: 'right', right: 'left' };
-
-  for (let step = 1; step < desiredLen; step++) {
-    // 找前一个箭头的所有相邻空格
-    const candidates = [];
-    for (const dir of ARROW_KEYS) {
-      const d = ARROW_DIR[dir];
-      const nx = prevX + d.dx, ny = prevY + d.dy;
-      if (nx < 0 || nx >= size || ny < 0 || ny >= size) continue;
-      if (inChain.has(nx + ',' + ny)) continue;
-      if (grid[ny][nx]) continue;
-      // 新箭头在 (nx, ny)，方向 = OPPOSITE[dir]（从前一个箭头走向 (nx,ny) 的反方向 = 从 (nx,ny) 指回前一个箭头）
-      candidates.push({ x: nx, y: ny, dir: OPPOSITE[dir] });
-    }
-    if (candidates.length === 0) break;
-
-    // 优先转弯（70%），直行（30%）→ 形成弯曲链条
-    const straightDir = chain[chain.length - 1].dir;
-    const straight = candidates.filter(c => c.dir === straightDir);
-    const turns = candidates.filter(c => c.dir !== straightDir);
-    let pick;
-    if (turns.length > 0 && (straight.length === 0 || Math.random() < 0.7)) {
-      pick = turns[Math.floor(Math.random() * turns.length)];
-    } else if (straight.length > 0) {
-      pick = straight[0];
-    } else {
-      pick = candidates[0];
-    }
-
-    chain.push(pick);
-    inChain.add(pick.x + ',' + pick.y);
-    prevX = pick.x;
-    prevY = pick.y;
-  }
-
-  return chain.length >= 2 ? chain : null;
-}
-
-// 兜底简单关卡
-function _arrowGenFallback(size) {
-  const grid = Array(size).fill(null).map(() => Array(size).fill(null));
-  let placed = 0;
-  for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) {
-      const dirs = ARROW_KEYS.filter(d => {
-        const dd = ARROW_DIR[d];
-        const nx = x + dd.dx, ny = y + dd.dy;
-        return nx < 0 || nx >= size || ny < 0 || ny >= size;
-      });
-      if (dirs.length > 0 && Math.random() < 0.6) {
-        grid[y][x] = { dir: dirs[Math.floor(Math.random() * dirs.length)] };
-        placed++;
-      }
-    }
-  }
-  return { grid, size, remaining: placed };
-}
-
-// ============================================================
-// 游戏控制
-// ============================================================
-function startArrowGame() {
+function startArrowGame(keepScore) {
   if (!GamePay.consumeRound('arrow-puzzle')) return;
-  _arrowState = { level: 1, score: 0, board: null };
-  _arrowLoadLevel();
+
+  // 隐藏全屏遮罩
+  const overlay = document.getElementById('gpOverlay');
+  if (overlay) overlay.style.display = 'none';
+
+  const prevScore = keepScore && _arrowState ? _arrowState.score : 0;
+  const prevLevel = keepScore && _arrowState ? _arrowState.level : 1;
+  const prevHearts = keepScore && _arrowState ? _arrowState.hearts : 5;
+
+  _arrowState = {
+    level: prevLevel,
+    score: prevScore,
+    hearts: prevHearts,
+    grid: null,
+    size: _getBoardSize(prevLevel),
+    gameOver: false,
+    levelCompleted: false,
+    hintCells: [],
+    hintUsed: 0,
+    hintLimit: 3,
+  };
+  _arrowState.grid = _generateGrid(_arrowState.level);
+
+  GamePay.registerRevive('arrow-puzzle', () => {
+    if (_arrowState) {
+      _arrowState.hearts = 5;
+      _arrowState.gameOver = false;
+      _arrowState.levelCompleted = false;
+      _arrowState.grid = _generateGrid(_arrowState.level);
+      _arrowState.hintCells = [];
+      _arrowState.hintUsed = 0;
+      _renderBoard();
+      _updateUI();
+      document.getElementById('arrowStatus').textContent = `♻️ 已复活，第 ${_arrowState.level} 关`;
+    }
+  });
+
+  _renderBoard();
+  _updateUI();
+  document.getElementById('arrowStatus').textContent = `第 ${_arrowState.level} 关，点击可消除的箭头！`;
+
+  document.getElementById('arrowHintBtn').onclick = () => _giveHint();
+  document.getElementById('arrowRestartBtn').onclick = () => _resetLevel();
+
+  const board = document.getElementById('arrowBoard');
+  board.onclick = (e) => {
+    const cell = e.target.closest('.arrow-cell');
+    if (!cell || cell.classList.contains('empty')) return;
+    if (_arrowState.gameOver || _arrowState.levelCompleted) return;
+    const r = parseInt(cell.dataset.r), c = parseInt(cell.dataset.c);
+    if (isNaN(r) || isNaN(c)) return;
+    _handleClick(r, c, cell);
+  };
 }
 
-function _arrowLoadLevel() {
-  const s = _arrowState;
-  s.board = _arrowGenLevel(s.level);
-  _arrowRenderBoard();
-  document.getElementById('arrowLevel').textContent = s.level;
-  document.getElementById('arrowScore').textContent = s.score;
+function _updateUI() {
+  document.getElementById('arrowLevel').textContent = _arrowState.level;
+  document.getElementById('arrowScore').textContent = _arrowState.score;
+  document.getElementById('arrowHearts').textContent = _arrowState.hearts;
 }
 
-function _arrowRenderBoard() {
+function _giveHint() {
   const s = _arrowState;
-  const boardEl = document.getElementById('arrowBoard');
-  if (!boardEl) return;
-  const size = s.board.size;
-  const cell = Math.max(36, Math.min(54, Math.floor(300 / size)));
-  boardEl.style.gridTemplateColumns = `repeat(${size},${cell}px)`;
-
-  boardEl.innerHTML = '';
-  for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) {
-      const cellEl = document.createElement('div');
-      const arrow = s.board.grid[y][x];
-      if (arrow) {
-        cellEl.className = 'arrow-cell c-' + arrow.dir;
-        cellEl.textContent = ARROW_DIR[arrow.dir].glyph;
-        cellEl.style.width = cell + 'px';
-        cellEl.style.height = cell + 'px';
-        cellEl.dataset.x = x;
-        cellEl.dataset.y = y;
-        cellEl.addEventListener('click', (e) => { e.preventDefault(); _arrowTap(x, y, cellEl); });
-        cellEl.addEventListener('mouseenter', () => _arrowHighlight(x, y));
-        cellEl.addEventListener('mouseleave', _clearHighlight);
-        cellEl.addEventListener('touchstart', () => _arrowHighlight(x, y), { passive: true });
-      } else {
-        cellEl.className = 'arrow-cell empty';
-        cellEl.style.width = cell + 'px';
-        cellEl.style.height = cell + 'px';
+  if (!s || s.gameOver || s.levelCompleted) return;
+  if (s.hintUsed >= s.hintLimit) {
+    document.getElementById('arrowStatus').textContent = '💡 本关提示次数已用完！';
+    return;
+  }
+  const cells = [];
+  const grid = s.grid;
+  const rows = s.size.rows;
+  const cols = s.size.cols;
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      if (grid[r][c] !== null && _isRemovable(grid, r, c)) {
+        cells.push([r, c]);
       }
-      boardEl.appendChild(cellEl);
     }
   }
-}
-
-// 高亮整条流路径
-function _arrowHighlight(x, y) {
-  _clearHighlight();
-  const s = _arrowState;
-  if (!s || !s.board) return;
-  const { flow, canExit } = _findFlow(s.board.grid, s.board.size, x, y);
-  if (canExit && flow.length > 0) {
-    for (const f of flow) {
-      const el = document.querySelector(`.arrow-cell[data-x="${f.x}"][data-y="${f.y}"]`);
-      if (el) el.classList.add('highlight');
-    }
+  if (cells.length === 0) {
+    document.getElementById('arrowStatus').textContent = '💡 当前没有可消除的箭头';
+    return;
   }
+  s.hintUsed++;
+  if (s.score > 0) s.score--;
+  document.getElementById('arrowScore').textContent = s.score;
+
+  const shuffled = cells.sort(() => Math.random() - 0.5);
+  s.hintCells = shuffled.slice(0, Math.min(5, shuffled.length));
+  _renderBoard();
+
+  if (s.hintUsed === s.hintLimit) {
+    s.hearts--;
+    document.getElementById('arrowHearts').textContent = s.hearts;
+    document.getElementById('arrowStatus').textContent = `💔 提示次数用尽，扣一颗心！剩余 ${s.hearts} 颗`;
+    if (s.hearts <= 0) {
+      s.gameOver = true;
+      GamePay.showGameOver('arrow-puzzle', `${t('pay.finalScore')}: <b style="color:var(--primary);font-size:20px;">${s.score}</b>`, { score: s.score });
+    }
+  } else {
+    document.getElementById('arrowStatus').textContent = `💡 已用 ${s.hintUsed}/${s.hintLimit} 次提示，扣1分`;
+  }
+
+  if (_arrowHintTimer) clearTimeout(_arrowHintTimer);
+  _arrowHintTimer = setTimeout(() => {
+    if (s) { s.hintCells = []; _renderBoard(); }
+  }, 2500);
 }
 
-function _clearHighlight() {
-  document.querySelectorAll('.arrow-cell.highlight').forEach(el => el.classList.remove('highlight'));
-}
-
-// 点击箭头：整条流路径一起滑出
-function _arrowTap(x, y, cellEl) {
+function _handleClick(r, c, cellEl) {
   const s = _arrowState;
-  if (!s || !s.board) return;
-  const arrow = s.board.grid[y][x];
-  if (!arrow) return;
+  if (!s || !s.grid) return;
+  const grid = s.grid;
+  if (grid[r][c] === null) return;
 
-  const { flow, canExit } = _findFlow(s.board.grid, s.board.size, x, y);
-
-  if (!canExit || flow.length === 0) {
-    // 被阻挡：抖动提示
-    cellEl.classList.remove('shake');
-    void cellEl.offsetWidth;
-    cellEl.classList.add('shake');
+  if (!_isRemovable(grid, r, c)) {
+    s.hearts--;
+    document.getElementById('arrowHearts').textContent = s.hearts;
+    cellEl.classList.add('wrong');
+    setTimeout(() => cellEl.classList.remove('wrong'), 300);
+    document.getElementById('arrowStatus').textContent = '❌ 这个箭头指向另一个箭头，-1 ❤️';
+    if (s.hearts <= 0) {
+      s.gameOver = true;
+      GamePay.showGameOver('arrow-puzzle', `${t('pay.finalScore')}: <b style="color:var(--primary);font-size:20px;">${s.score}</b>`, { score: s.score });
+    }
     return;
   }
 
-  // 清除高亮
-  _clearHighlight();
+  const dir = grid[r][c];
+  const d = DIR_MAP[dir];
+  const rows = s.size.rows;
+  const cols = s.size.cols;
+  const distance = Math.max(cols, rows) * 1.5;
+  const tx = d.dx * distance;
+  const ty = d.dy * distance;
 
-  // 整条链一起滑出：从出口端（flow[0]）开始，逐个延迟动画
-  flow.forEach((f, i) => {
-    const el = document.querySelector(`.arrow-cell[data-x="${f.x}"][data-y="${f.y}"]`);
-    if (el) {
-      el.classList.add('removing');
-      const d = ARROW_DIR[f.dir];
-      const delay = i * 70; // 逐个延迟，形成"流动"效果
-      setTimeout(() => {
-        el.style.transform = `translate(${d.dx * 350}px, ${d.dy * 350}px)`;
-        el.style.opacity = '0';
-      }, delay);
-      setTimeout(() => el.remove(), delay + 450);
-    }
-    // 从网格状态移除
-    s.board.grid[f.y][f.x] = null;
-    s.board.remaining--;
-    s.score++;
+  const clone = cellEl.cloneNode(true);
+  clone.style.position = 'absolute';
+  clone.style.left = cellEl.offsetLeft + 'px';
+  clone.style.top = cellEl.offsetTop + 'px';
+  clone.style.width = cellEl.offsetWidth + 'px';
+  clone.style.height = cellEl.offsetHeight + 'px';
+  clone.style.margin = '0';
+  clone.style.zIndex = '10';
+  clone.classList.add('flying');
+  const board = document.getElementById('arrowBoard');
+  board.appendChild(clone);
+
+  cellEl.classList.add('empty');
+  cellEl.textContent = '';
+  cellEl.style.background = '';
+  grid[r][c] = null;
+  s.score++;
+  document.getElementById('arrowScore').textContent = s.score;
+  document.getElementById('arrowStatus').textContent = `✔️ 消除 1 个箭头`;
+
+  requestAnimationFrame(() => {
+    clone.style.transform = `translate(${tx}px, ${ty}px)`;
+    clone.style.opacity = '0';
   });
 
-  document.getElementById('arrowScore').textContent = s.score;
+  setTimeout(() => {
+    if (clone.parentNode) clone.parentNode.removeChild(clone);
+  }, 600);
 
-  // 检查是否还有箭头的流路径被阻断（由于链条交叉依赖）
-  // 不需要主动处理 — 玩家继续点击其他箭头即可
+  s.hintCells = [];
 
-  if (s.board.remaining <= 0) {
-    s.level++;
-    setTimeout(() => {
-      showToast(t('arrow.levelClear'), 'success');
-      _arrowLoadLevel();
-    }, 700);
+  setTimeout(() => {
+    let remaining = 0;
+    for (let rr = 0; rr < rows; rr++) {
+      for (let cc = 0; cc < cols; cc++) {
+        if (grid[rr][cc] !== null) remaining++;
+      }
+    }
+    if (remaining === 0) {
+      s.levelCompleted = true;
+      if (s.level >= MAX_LEVEL) {
+        document.getElementById('arrowStatus').textContent = '🏆🏆🏆 通关全部268关！';
+        s.gameOver = true;
+        GamePay.showGameOver('arrow-puzzle', `${t('pay.finalScore')}: <b style="color:var(--primary);font-size:20px;">${s.score}</b>`, { win: true, score: s.score });
+      } else {
+        document.getElementById('arrowStatus').textContent = `🎉 第 ${s.level} 关通过！进入下一关`;
+        setTimeout(() => {
+          s.level++;
+          s.hearts = 5;
+          s.gameOver = false;
+          s.levelCompleted = false;
+          s.size = _getBoardSize(s.level);
+          s.grid = _generateGrid(s.level);
+          s.hintCells = [];
+          s.hintUsed = 0;
+          _renderBoard();
+          _updateUI();
+          document.getElementById('arrowStatus').textContent = `第 ${s.level} 关，加油！`;
+        }, 1200);
+      }
+    } else {
+      let hasRemovable = false;
+      for (let rr = 0; rr < rows; rr++) {
+        for (let cc = 0; cc < cols; cc++) {
+          if (grid[rr][cc] !== null && _isRemovable(grid, rr, cc)) {
+            hasRemovable = true;
+            break;
+          }
+        }
+        if (hasRemovable) break;
+      }
+      if (!hasRemovable) {
+        document.getElementById('arrowStatus').textContent = '♻️ 没有可消除的箭头，自动重置本关';
+        setTimeout(() => {
+          s.grid = _generateGrid(s.level);
+          s.hintCells = [];
+          s.hintUsed = 0;
+          _renderBoard();
+          _updateUI();
+          document.getElementById('arrowStatus').textContent = `第 ${s.level} 关已重置`;
+        }, 800);
+      }
+    }
+  }, 350);
+}
+
+function _resetLevel() {
+  const s = _arrowState;
+  if (!s) return;
+  s.grid = _generateGrid(s.level);
+  s.hearts = 5;
+  s.gameOver = false;
+  s.levelCompleted = false;
+  s.hintCells = [];
+  s.hintUsed = 0;
+  _renderBoard();
+  _updateUI();
+  document.getElementById('arrowStatus').textContent = `🔄 已重置第 ${s.level} 关`;
+}
+
+function _renderBoard() {
+  const s = _arrowState;
+  const board = document.getElementById('arrowBoard');
+  if (!board || !s) return;
+  const cols = s.size.cols;
+  const rows = s.size.rows;
+
+  board.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+  board.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
+  // 不设置 aspect-ratio，让高度由内容撑起，宽度撑满
+
+  board.innerHTML = '';
+  const grid = s.grid;
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const cell = document.createElement('div');
+      cell.className = 'arrow-cell';
+      const val = grid[r][c];
+      if (val === null) {
+        cell.classList.add('empty');
+      } else {
+        const removable = _isRemovable(grid, r, c);
+        const color = removable ? DIR_COLORS[val] : DIR_COLORS_DIMMED[val];
+        cell.textContent = val;
+        cell.style.color = color;
+        cell.style.textShadow = removable ? `0 0 16px ${color}60, 0 2px 4px rgba(0,0,0,0.5)` : 'none';
+        if (!removable) cell.classList.add('dimmed');
+        cell.dataset.r = r;
+        cell.dataset.c = c;
+        if (s.hintCells.some(([hr, hc]) => hr === r && hc === c)) {
+          cell.classList.add('hint-highlight');
+        }
+      }
+      board.appendChild(cell);
+    }
   }
 }
 
 window.TOOL_REGISTRY['arrow-puzzle'] = {
   render: renderArrowPuzzle,
   bind: bindArrowEvents,
-  beforeUnmount: () => { _arrowState = null; }
+  beforeUnmount: () => {
+    if (_arrowHintTimer) clearTimeout(_arrowHintTimer);
+    _arrowState = null;
+  }
 };
